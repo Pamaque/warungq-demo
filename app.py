@@ -12,6 +12,8 @@ import sqlite3
 import zipfile
 from datetime import datetime, timedelta, date
 from functools import wraps
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'libs'))
 
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, send_file, session, url_for)
