@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Laporan Penjualan - WarungQ{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:14px">📊 Laporan Penjualan</h2>
+
+<div class="card">
+  <div class="filter-bar">
+    <a class="btn {{ 'btn-secondary' if preset != 'hari' }}" href="{{ url_for('laporan', preset='hari') }}">Harian</a>
+    <a class="btn {{ 'btn-secondary' if preset != 'minggu' }}" href="{{ url_for('laporan', preset='minggu') }}">Mingguan</a>
+    <a class="btn {{ 'btn-secondary' if preset != 'bulan' }}" href="{{ url_for('laporan', preset='bulan') }}">Bulanan</a>
+    <a class="btn {{ 'btn-secondary' if preset != 'bulan_lalu' }}" href="{{ url_for('laporan', preset='bulan_lalu') }}">Bulan Lalu</a>
+    <form method="get" class="flex" style="gap:8px">
+      <input type="hidden" name="preset" value="custom">
+      <div><label>Dari</label><input type="date" name="from" value="{{ d_from }}"></div>
+      <div><label>Sampai</label><input type="date" name="to" value="{{ d_to }}"></div>
+      <button class="btn btn-secondary">Terapkan</button>
+    </form>
+    <a class="btn btn-blue" href="{{ url_for('laporan_export', **{'from': d_from, 'to': d_to}) }}" style="margin-left:auto">⬇️ Export Excel</a>
+  </div>
+  <p class="muted">Periode: {{ d_from }} s.d. {{ d_to }}</p>
+</div>
+
+<div class="grid grid-4">
+  <div class="stat"><div class="label">💰 Total Omzet</div><div class="value">{{ summary.omzet|rp }}</div></div>
+  <div class="stat"><div class="label">🧾 Total Transaksi</div><div class="value">{{ summary.ntrx }}</div></div>
+  <div class="stat"><div class="label">📦 Produk Terjual</div><div class="value">{{ summary.qty }}</div></div>
+  <div class="stat"><div class="label">📈 Rata-rata / Transaksi</div><div class="value">{{ (summary.omzet / summary.ntrx)|round|int|rp if summary.ntrx else 'Rp0' }}</div></div>
+</div>
+
+<div class="grid grid-2 mt">
+  <div class="card">
+    <h2>Penjualan Per Hari</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Tanggal</th><th class="right">Transaksi</th><th class="right">Omzet</th></tr>
+      {% for d in per_day %}
+      <tr><td>{{ d.d }}</td><td class="right">{{ d.ntrx }}</td><td class="right">{{ d.omzet|rp }}</td></tr>
+      {% endfor %}
+      {% if not per_day %}<tr><td colspan="3" class="muted">Tidak ada data.</td></tr>{% endif %}
+    </table></div>
+  </div>
+  <div class="card">
+    <h2>Metode Pembayaran</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Metode</th><th class="right">Transaksi</th><th class="right">Omzet</th></tr>
+      {% for m in per_method %}
+      <tr><td>{{ m.payment_method }}</td><td class="right">{{ m.ntrx }}</td><td class="right">{{ m.omzet|rp }}</td></tr>
+      {% endfor %}
+      {% if not per_method %}<tr><td colspan="3" class="muted">Tidak ada data.</td></tr>{% endif %}
+    </table></div>
+  </div>
+</div>
+
+<div class="grid grid-2 mt">
+  <div class="card">
+    <h2>Produk Terlaris</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Produk</th><th class="right">Qty</th><th class="right">Omzet</th></tr>
+      {% for t in top %}
+      <tr><td>{{ t.name }}</td><td class="right">{{ t.qty }}</td><td class="right">{{ t.omzet|rp }}</td></tr>
+      {% endfor %}
+      {% if not top %}<tr><td colspan="3" class="muted">Tidak ada data.</td></tr>{% endif %}
+    </table></div>
+  </div>
+  <div class="card">
+    <h2>Performa Kasir</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Kasir</th><th class="right">Transaksi</th><th class="right">Omzet</th></tr>
+      {% for k in per_kasir %}
+      <tr><td>{{ k.kasir }}</td><td class="right">{{ k.ntrx }}</td><td class="right">{{ k.omzet|rp }}</td></tr>
+      {% endfor %}
+      {% if not per_kasir %}<tr><td colspan="3" class="muted">Tidak ada data.</td></tr>{% endif %}
+    </table></div>
+  </div>
+</div>
+{% endblock %}

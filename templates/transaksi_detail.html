@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Transaksi {{ t.code }}{% endblock %}
+{% block content %}
+<div class="no-print flex" style="margin-bottom:14px">
+  <a class="btn" href="{{ url_for('struk', tid=t.id) }}" target="_blank">🖨️ Lihat / Cetak Struk</a>
+  <a class="btn btn-secondary" href="{{ url_for('transaksi') }}">Kembali</a>
+</div>
+<div class="card">
+  <h2>Transaksi {{ t.code }}</h2>
+  <p class="muted">{{ t.created_at }} · Kasir: {{ t.kasir }} · Pembayaran: {{ t.payment_method }}</p>
+  <div class="table-wrap mt">
+    <table>
+      <tr><th>Produk</th><th class="right">Harga</th><th class="right">Qty</th><th class="right">Subtotal</th></tr>
+      {% for it in items %}
+      <tr><td>{{ it.name }}</td><td class="right">{{ it.price|rp }}</td><td class="right">{{ it.qty }}</td><td class="right">{{ it.subtotal|rp }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="totals">
+    <div class="row"><span>Subtotal</span><b>{{ t.subtotal|rp }}</b></div>
+    {% if t.discount %}<div class="row"><span>Diskon</span><b>-{{ t.discount|rp }}</b></div>{% endif %}
+    <div class="row grand"><span>TOTAL</span><span>{{ t.total|rp }}</span></div>
+    <div class="row"><span>Bayar ({{ t.payment_method }})</span><b>{{ t.paid|rp }}</b></div>
+    {% if t.change_amount %}<div class="row"><span>Kembalian</span><b>{{ t.change_amount|rp }}</b></div>{% endif %}
+  </div>
+</div>
+{% endblock %}

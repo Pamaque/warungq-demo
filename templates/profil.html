@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Profil - WarungQ{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:14px">👤 Profil: {{ u.name }} ({{ u.role|upper }})</h2>
+{% if demo %}
+<div class="flash flash-error">🧪 Mode demo: ganti password dan pertanyaan keamanan dimatikan agar demo tetap bisa dipakai siapa saja.</div>
+{% endif %}
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Ganti Password</h2>
+    <form method="post">
+      <input type="hidden" name="act" value="password">
+      <label>Password Lama</label>
+      <div class="pw-wrap"><input type="password" name="old_password" required></div>
+      <label>Password Baru (min. 6)</label>
+      <div class="pw-wrap"><input type="password" name="new_password" required></div>
+      <label>Ulangi Password Baru</label>
+      <div class="pw-wrap"><input type="password" name="new_password2" required></div>
+      <button class="btn mt">💾 Ganti Password</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Pertanyaan Keamanan (untuk reset password)</h2>
+    <p class="muted">Jika lupa password, jawaban pertanyaan ini dipakai untuk mereset sendiri di halaman login.</p>
+    <form method="post">
+      <input type="hidden" name="act" value="security">
+      <label>Pertanyaan</label>
+      <input name="security_question" value="{{ u.security_question or '' }}" placeholder="Contoh: Nama hewan peliharaan pertama?" required>
+      <label>Jawaban</label>
+      <input name="security_answer" required>
+      <button class="btn mt">💾 Simpan</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

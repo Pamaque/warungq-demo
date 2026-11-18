@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Label Barcode - {{ p.name }}{% endblock %}
+{% block head %}
+<script src="{{ url_for('static', filename='vendor/JsBarcode.all.min.js') }}"></script>
+<style>
+  .label-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .label-item { border: 1px dashed #bbb; padding: 6px; text-align: center; }
+  .label-item .n { font-size: 11px; font-weight: 600; }
+  .label-item .pr { font-size: 11px; }
+  @media print {
+    body * { visibility: hidden; }
+    .print-area, .print-area * { visibility: visible; }
+    .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+    .no-print { display: none !important; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="no-print" style="margin-bottom:14px">
+  <button class="btn" onclick="window.print()">🖨️ Cetak Label</button>
+  <a class="btn btn-secondary" href="{{ url_for('produk') }}">Kembali</a>
+</div>
+<div class="print-area">
+  <div class="label-grid">
+    {% for _ in range(copies) %}
+    <div class="label-item">
+      <div class="n">{{ p.name }}</div>
+      <svg class="bc" data-code="{{ p.barcode }}"></svg>
+      <div class="pr">{{ p.price|rp }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+<script>
+document.querySelectorAll('svg.bc').forEach(function (svg) {
+  try { JsBarcode(svg, svg.dataset.code, { format: 'CODE128', width: 1.4, height: 34, fontSize: 11, margin: 2 }); } catch (e) {}
+});
+window.addEventListener('load', () => setTimeout(() => window.print(), 500));
+</script>
+{% endblock %}

@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Kasir - WarungQ{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:14px">🧾 Kasir / POS</h2>
+<div class="pos-layout">
+  <div>
+    <div class="card">
+      <div class="flex">
+        <input id="scan-input" placeholder="Scan barcode / ketik nama produk lalu Enter..." style="flex:1" autofocus>
+        <button class="btn btn-blue" id="btn-camera">📷 Scan Kamera</button>
+      </div>
+      <div id="reader"></div>
+      <p class="muted mt">Tips: alat scanner USB langsung mengetik ke kolom di atas. Untuk kamera HP/laptop, klik "Scan Kamera" (butuh HTTPS atau localhost).</p>
+    </div>
+    <div class="card">
+      <h2>Daftar Produk</h2>
+      <div id="product-grid" class="product-grid"></div>
+    </div>
+  </div>
+
+  <div class="card" id="cart-card">
+    <h2>Keranjang <span class="muted" id="cart-count">0 item</span></h2>
+    <div id="cart-items"><p class="muted">Keranjang kosong.</p></div>
+    <div class="totals">
+      <div class="row"><span>Subtotal</span><b id="t-subtotal">Rp0</b></div>
+      <div class="row">
+        <span>Diskon</span>
+        <input id="t-discount" type="number" min="0" value="0" style="width:110px; text-align:right">
+      </div>
+      <div class="row grand"><span>TOTAL</span><span id="t-total">Rp0</span></div>
+    </div>
+
+    <label>Metode Pembayaran</label>
+    <div class="pay-methods">
+      <button type="button" data-m="Tunai" class="sel">💵 Tunai</button>
+      <button type="button" data-m="Debit">💳 Debit</button>
+      <button type="button" data-m="QRIS">📱 QRIS</button>
+      <button type="button" data-m="E-Wallet">📲 E-Wallet</button>
+    </div>
+    <div id="qris-box" style="display:none; text-align:center">
+      {% if settings.qris_image %}
+      <img src="{{ url_for('static', filename='uploads/' + settings.qris_image) }}" alt="QRIS" style="max-width:200px">
+      <p class="muted">Minta pelanggan scan QR di atas (QRIS / e-wallet: Dana, GoPay, OVO, ShopeePay).</p>
+      {% else %}
+      <p class="muted">QRIS belum diunggah. Admin bisa mengunggahnya di menu Pengaturan.</p>
+      {% endif %}
+    </div>
+
+    <div id="cash-box">
+      <label>Uang Dibayar</label>
+      <input id="t-paid" type="number" min="0" value="0">
+      <div class="row" style="display:flex; justify-content:space-between; margin-top:6px">
+        <span>Kembalian</span><b id="t-change">Rp0</b>
+      </div>
+    </div>
+
+    <button class="btn mt" style="width:100%" id="btn-pay">✅ Bayar &amp; Cetak Struk</button>
+  </div>
+</div>
+
+<!-- Modal sukses -->
+<div id="success-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center">
+  <div class="card" style="max-width:360px; text-align:center">
+    <h2 style="color:#14532d">✅ Transaksi Berhasil!</h2>
+    <p class="mt">No: <b id="success-code"></b></p>
+    <div class="flex mt" style="justify-content:center">
+      <a class="btn" id="btn-print-struk" href="#" target="_blank">🖨️ Cetak Struk</a>
+      <button class="btn btn-secondary" id="btn-new-trx">Transaksi Baru</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var CART = [];
+var PAY = 'Tunai';
+var PRODUCTS = [];
+
+function loadProducts(q) {
+  fetch('/api/products?q=' + encodeURIComponent(q || '')).then(r => r.json()).then(rows => {
+    PRODUCTS = rows;
+    var g = document.getElementById('product-grid');
+    g.innerHTML = rows.length ? '' : '<p class="muted">Tidak ada produk.</p>';
+    rows.forEach(p => {
+      var d = document.createElement('div');
+      d.className = 'product-tile' + (p.stock <= 0 ? ' out' : '');
+      d.innerHTML = '<div class="pname">' + esc(p.name) + '</div>' +
+                    '<div class="pprice">' + rp(p.price) + '</div>' +
+                    '<div class="pstock">Stok: ' + p.stock + (p.barcode ? ' · ' + esc(p.barcode) : '') + '</div>';
+      if (p.stock > 0) d.onclick = () => addToCart(p.id);
+      g.appendChild(d);
+    });
+  });
+}
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+function addToCart(pid) {
+  var p = PRODUCTS.find(x => x.id === pid);
+  if (p) { _add(p); return; }
+  fetch('/api/product/' + pid).then(r => { if (!r.ok) throw 0; return r.json(); })
+    .then(pp => { PRODUCTS.push(pp); _add(pp); })
+    .catch(() => alert('Produk tidak ditemukan.'));
+}
+function _add(p) {
+  var it = CART.find(x => x.id === p.id);
+  if (it) {
+    if (it.qty + 1 > p.stock) { alert('Stok ' + p.name + ' tinggal ' + p.stock + '.'); return; }
+    it.qty++;
+  } else CART.push({ id: p.id, name: p.name, price: p.price, qty: 1, stock: p.stock });
+  renderCart();
+}
+function setQty(pid, q) {
+  var it = CART.find(x => x.id === pid);
+  if (!it) return;
+  it.qty = q;
+  if (it.qty <= 0) CART = CART.filter(x => x.id !== pid);
+  renderCart();
+}
+
+function renderCart() {
+  var box = document.getElementById('cart-items');
+  var n = CART.reduce((s, x) => s + x.qty, 0);
+  document.getElementById('cart-count').textContent = n + ' item';
+  if (!CART.length) { box.innerHTML = '<p class="muted">Keranjang kosong.</p>'; }
+  else {
+    box.innerHTML = '';
+    CART.forEach(it => {
+      var d = document.createElement('div');
+      d.className = 'cart-item';
+      d.innerHTML = '<div class="cname">' + esc(it.name) + '<br><span class="muted">' + rp(it.price) + ' × ' + it.qty + ' = ' + rp(it.price * it.qty) + '</span></div>' +
+        '<button class="qty-btn" onclick="setQty(' + it.id + ',' + (it.qty - 1) + ')">−</button>' +
+        '<b>' + it.qty + '</b>' +
+        '<button class="qty-btn" onclick="setQty(' + it.id + ',' + (it.qty + 1) + ')">+</button>';
+      box.appendChild(d);
+    });
+  }
+  updateTotals();
+}
+
+function subtotal() { return CART.reduce((s, x) => s + x.price * x.qty, 0); }
+function updateTotals() {
+  var disc = Math.max(0, parseInt(document.getElementById('t-discount').value || 0));
+  var total = Math.max(0, subtotal() - disc);
+  document.getElementById('t-subtotal').textContent = rp(subtotal());
+  document.getElementById('t-total').textContent = rp(total);
+  var paid = parseInt(document.getElementById('t-paid').value || 0);
+  document.getElementById('t-change').textContent = rp(Math.max(0, paid - total));
+}
+
+document.getElementById('t-discount').addEventListener('input', updateTotals);
+document.getElementById('t-paid').addEventListener('input', updateTotals);
+
+document.querySelectorAll('.pay-methods button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.pay-methods button').forEach(x => x.classList.remove('sel'));
+    b.classList.add('sel');
+    PAY = b.dataset.m;
+    document.getElementById('qris-box').style.display = (PAY === 'QRIS' || PAY === 'E-Wallet') ? 'block' : 'none';
+    document.getElementById('cash-box').style.display = PAY === 'Tunai' ? 'block' : 'none';
+  };
+});
+
+// Scan / cari
+document.getElementById('scan-input').addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  var code = this.value.trim();
+  if (!code) return;
+  this.value = '';
+  fetch('/api/products?q=' + encodeURIComponent(code)).then(r => r.json()).then(rows => {
+    var exact = rows.find(p => p.barcode === code);
+    var p = exact || rows[0];
+    if (p) addToCart(p.id);
+    else alert('Produk dengan barcode/nama "' + code + '" tidak ditemukan.');
+  });
+});
+
+// Kamera
+document.getElementById('btn-camera').onclick = function () {
+  var reader = document.getElementById('reader');
+  if (reader.style.display === 'block') { location.reload(); return; }
+  reader.style.display = 'block';
+  var html5Qrcode = new Html5Qrcode('reader');
+  html5Qrcode.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220 }, (text) => {
+    html5Qrcode.stop();
+    reader.style.display = 'none';
+    document.getElementById('scan-input').value = text;
+    document.getElementById('scan-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+  }).catch(err => { alert('Kamera tidak bisa dibuka: ' + err); reader.style.display = 'none'; });
+};
+
+// Bayar
+document.getElementById('btn-pay').onclick = function () {
+  if (!CART.length) { alert('Keranjang masih kosong.'); return; }
+  var disc = Math.max(0, parseInt(document.getElementById('t-discount').value || 0));
+  var total = Math.max(0, subtotal() - disc);
+  var paid = parseInt(document.getElementById('t-paid').value || 0);
+  if (PAY === 'Tunai' && paid < total) { alert('Uang dibayar kurang dari total.'); return; }
+  fetch('/api/checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items: CART.map(x => ({ id: x.id, qty: x.qty })), payment_method: PAY, discount: disc, paid: paid })
+  }).then(r => r.json()).then(res => {
+    if (!res.ok) { alert(res.error || 'Gagal menyimpan transaksi.'); return; }
+    document.getElementById('success-modal').style.display = 'flex';
+    document.getElementById('success-code').textContent = res.code;
+    document.getElementById('btn-print-struk').href = '/struk/' + res.transaction_id + '?autoprint=1';
+  });
+};
+document.getElementById('btn-new-trx').onclick = () => location.reload();
+
+loadProducts('');
+renderCart();
+</script>
+{% endblock %}

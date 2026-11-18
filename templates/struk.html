@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Struk {{ t.code }}{% endblock %}
+{% block content %}
+<div class="no-print" style="text-align:center; margin-bottom:14px">
+  <button class="btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+  <a class="btn btn-secondary" href="{{ url_for('transaksi') }}">Kembali</a>
+</div>
+<div class="struk">
+  <h3>{{ settings.store_name or 'WarungQ' }}</h3>
+  {% if settings.store_address %}<div class="center">{{ settings.store_address }}</div>{% endif %}
+  {% if settings.store_wa %}<div class="center">WA: {{ settings.store_wa }}</div>{% endif %}
+  <hr>
+  <div>{{ t.code }}</div>
+  <div>{{ t.created_at }}</div>
+  <div>Kasir: {{ t.kasir }}</div>
+  <hr>
+  <table>
+    {% for it in items %}
+    <tr>
+      <td colspan="2">{{ it.name }}</td>
+    </tr>
+    <tr>
+      <td>{{ it.qty }} x {{ it.price|rp }}</td>
+      <td class="r">{{ it.subtotal|rp }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <hr>
+  <table>
+    <tr><td>Subtotal</td><td class="r">{{ t.subtotal|rp }}</td></tr>
+    {% if t.discount %}<tr><td>Diskon</td><td class="r">-{{ t.discount|rp }}</td></tr>{% endif %}
+    <tr><td><b>TOTAL</b></td><td class="r"><b>{{ t.total|rp }}</b></td></tr>
+    <tr><td>Bayar ({{ t.payment_method }})</td><td class="r">{{ t.paid|rp }}</td></tr>
+    {% if t.change_amount %}<tr><td>Kembalian</td><td class="r">{{ t.change_amount|rp }}</td></tr>{% endif %}
+  </table>
+  <hr>
+  <div class="center">{{ settings.receipt_footer or 'Terima kasih!' }}</div>
+</div>
+{% if request.args.get('autoprint') %}
+<script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
+{% endif %}
+{% endblock %}

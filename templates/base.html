@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}WarungQ{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+{% if session.get('user_id') %}
+<nav class="topbar">
+  <div class="brand">🛒 {{ settings.store_name or 'WarungQ' }}</div>
+  <div class="nav-links">
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.path == '/' }}">Dashboard</a>
+    <a href="{{ url_for('pos') }}" class="{{ 'active' if request.path == '/pos' }}">Kasir</a>
+    {% if role == 'admin' or demo %}
+    <a href="{{ url_for('produk') }}" class="{{ 'active' if request.path.startswith('/produk') }}">Produk</a>
+    <a href="{{ url_for('laporan') }}" class="{{ 'active' if request.path.startswith('/laporan') }}">Laporan</a>
+    {% endif %}
+    {% if role == 'admin' %}
+    <a href="{{ url_for('pengguna') }}" class="{{ 'active' if request.path.startswith('/pengguna') }}">Pengguna</a>
+    <a href="{{ url_for('pengaturan') }}" class="{{ 'active' if request.path.startswith('/pengaturan') }}">Pengaturan</a>
+    {% endif %}
+    <a href="{{ url_for('transaksi') }}" class="{{ 'active' if request.path.startswith('/transaksi') }}">Riwayat</a>
+  </div>
+  <div class="nav-user">
+    <span class="badge role-{{ role }}">{{ role|upper }}</span> {{ user_name }}
+    <a href="{{ url_for('profil') }}">Profil</a>
+    <a href="{{ url_for('logout') }}" class="btn-logout">Keluar</a>
+  </div>
+</nav>
+{% if demo %}
+<div class="demo-banner">🧪 MODE DEMO — masuk sebagai Kasir (kasir / kasir123). Boleh transaksi, lihat laporan, dan tambah produk simulasi. Fitur admin dimatikan.</div>
+{% endif %}
+{% endif %}
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

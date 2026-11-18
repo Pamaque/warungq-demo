@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan Toko - WarungQ{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:14px">⚙️ Pengaturan Toko</h2>
+<div class="card">
+  <h2>Informasi Warung (tampil di struk)</h2>
+  <form method="post" enctype="multipart/form-data">
+    <div class="grid grid-2">
+      <div>
+        <label>Nama Warung</label>
+        <input name="store_name" value="{{ s.store_name }}">
+        <label>Nomor WhatsApp</label>
+        <input name="store_wa" value="{{ s.store_wa }}" placeholder="08xxxxxxxxxx">
+        <label>Alamat</label>
+        <textarea name="store_address" rows="2">{{ s.store_address }}</textarea>
+        <label>Catatan Kaki Struk</label>
+        <input name="receipt_footer" value="{{ s.receipt_footer }}">
+      </div>
+      <div>
+        <label>Gambar QRIS (untuk pembayaran QRIS / Dana / GoPay / OVO / ShopeePay)</label>
+        {% if s.qris_image %}
+        <p><img src="{{ url_for('static', filename='uploads/' + s.qris_image) }}" alt="QRIS" style="max-width:180px; border:1px solid #ddd; border-radius:8px"></p>
+        {% endif %}
+        <input type="file" name="qris_file" accept=".png,.jpg,.jpeg,.webp">
+        <p class="muted">Unggah foto QRIS statis dari bank/e-wallet Anda. Saat kasir memilih QRIS atau E-Wallet, gambar ini muncul agar pelanggan bisa scan. Uang masuk langsung ke rekening/e-wallet Anda; aplikasi hanya mencatat metodenya di laporan.</p>
+      </div>
+    </div>
+    <button class="btn mt">💾 Simpan Pengaturan</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Informasi Sistem</h2>
+  <p class="muted">Data tersimpan permanen di database SQLite (file <b>warungq.db</b>) di folder aplikasi — tidak lagi bergantung pada localStorage browser. Rutin menyalin (backup) file warungq.db sangat disarankan.</p>
+</div>
+{% endblock %}

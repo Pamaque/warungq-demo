@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - WarungQ{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:16px">Selamat datang 👋</h2>
+<div class="grid grid-4">
+  <div class="stat"><div class="label">💰 Penjualan Hari Ini</div><div class="value">{{ sales_today.s|rp }}</div></div>
+  <div class="stat"><div class="label">🧾 Transaksi Hari Ini</div><div class="value">{{ sales_today.c }}</div></div>
+  <div class="stat"><div class="label">📦 Jumlah Produk</div><div class="value">{{ n_products }}</div></div>
+  <div class="stat"><div class="label">⚠️ Stok Menipis</div><div class="value">{{ low_stock|length }}</div></div>
+</div>
+
+<div class="grid grid-2 mt">
+  <div class="card">
+    <h2>Grafik Penjualan <span class="muted">(7 hari terakhir)</span></h2>
+    {% set maxv = chart|map(attribute='value')|max %}
+    <div class="chart">
+      {% for c in chart %}
+      <div class="bar-col">
+        <div class="bar-value">{{ c.value|rp }}</div>
+        <div class="bar" style="height: {{ (100 * c.value / maxv) if maxv else 0 }}%"></div>
+        <div class="bar-label">{{ c.label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h2>⚠️ Stok Menipis</h2>
+    {% if low_stock %}
+    <table>
+      <tr><th>Produk</th><th>Stok</th><th>Min</th></tr>
+      {% for p in low_stock %}
+      <tr><td>{{ p.name }}</td><td><span class="pill {{ 'pill-out' if p.stock == 0 else 'pill-warn' }}">{{ p.stock }}</span></td><td>{{ p.min_stock }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted">Semua stok aman 👍</p>{% endif %}
+  </div>
+</div>
+
+<div class="card mt">
+  <h2>Aktivitas Terbaru</h2>
+  {% if recent %}
+  <div class="table-wrap"><table>
+    <tr><th>No. Transaksi</th><th>Waktu</th><th>Kasir</th><th>Metode</th><th class="right">Total</th></tr>
+    {% for t in recent %}
+    <tr>
+      <td><a href="{{ url_for('transaksi_detail', tid=t.id) }}">{{ t.code }}</a></td>
+      <td>{{ t.created_at }}</td>
+      <td>{{ t.kasir }}</td>
+      <td>{{ t.payment_method }}</td>
+      <td class="right">{{ t.total|rp }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<p class="muted">Belum ada transaksi.</p>{% endif %}
+</div>
+{% endblock %}

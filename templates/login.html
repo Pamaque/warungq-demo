@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Login - WarungQ{% endblock %}
+{% block content %}
+<div class="login-box card">
+  <h2 style="text-align:center">🛒 {{ settings.store_name or 'WarungQ' }}</h2>
+  <p class="muted" style="text-align:center">Masuk untuk mulai berjualan</p>
+  <form method="post">
+    <label>Username</label>
+    <input name="username" required autofocus>
+    <label>Password</label>
+    <div class="pw-wrap"><input type="password" name="password" required></div>
+    <button class="btn mt" style="width:100%">Masuk</button>
+  </form>
+  <div class="auth-links"><a href="{{ url_for('lupa_password') }}">Lupa password?</a></div>
+  {% if demo %}
+  <p class="muted mt" style="text-align:center">🧪 Mode demo — masuk dengan <b>kasir / kasir123</b></p>
+  {% endif %}
+</div>
+{% endblock %}
